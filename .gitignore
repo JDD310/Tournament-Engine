@@ -218,3 +218,21 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Planning Files
+
+# ---- Frontend (React / Node) ----
+node_modules/
+frontend/build/
+frontend/dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env.local
+.env.*.local
+# The Python template above ignores lib/, which would also hide frontend/src/lib
+!frontend/src/lib/
+
+# ---- OS / editor ----
+.DS_Store
+Thumbs.db
