@@ -57,7 +57,7 @@ Setup instructions will be added once the MVP is built (Unit 12). The planned fl
 
 ## Project Management
 
-- **Jira:** [Tournament-Engine board](https://jdd310.atlassian.net/jira/software/projects/TE/boards/2) (epics, user stories, and sprints)
+- **Jira:** [Tournament-Engine board](https://jdd310.atlassian.net/jira/software/projects/TE/summary) (epics, user stories, and sprints)
 - **Confluence:** [Project Overview](https://jdd310.atlassian.net/wiki/spaces/TE/pages/229377/Project+Overview) (proposal, tech decisions, and reasoning)
 
 | Sprint | Dates | Goal |
