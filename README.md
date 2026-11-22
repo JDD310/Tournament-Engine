@@ -49,7 +49,42 @@ Tournament-Engine/
 
 ## Getting Started
 
-Setup instructions will be added once the MVP is built (Unit 12). The planned flow is:
+### Local development
+
+Requires Python 3.12+, Node 20+, and a Postgres database (a local one or a free Neon project).
+
+**Backend** (FastAPI, runs on port 8000):
+
+```
+cd backend
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements-dev.txt
+cp ../.env.example .env   # then set DATABASE_URL
+uvicorn app.main:app --reload
+```
+
+Tables are created automatically on startup. API docs are at http://localhost:8000/docs.
+
+**Frontend** (React + Vite, runs on port 5173 and proxies `/api` to the backend):
+
+```
+cd frontend
+npm install
+npm run dev
+```
+
+### Tests and linting
+
+```
+cd backend && pytest && ruff check .
+cd frontend && npm test && npm run lint
+```
+
+Backend tests use in-memory SQLite by default. Set `TEST_DATABASE_URL` to run them against Postgres.
+
+### Docker
+
+Docker setup will be added with the first deploy. The planned flow is:
 
 1. Clone the repo: `git clone https://github.com/JDD310/Tournament-Engine.git`
 2. Copy the environment file and add a Postgres connection string: `cp .env.example .env`

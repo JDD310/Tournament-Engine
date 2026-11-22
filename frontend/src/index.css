@@ -1,0 +1,90 @@
+:root {
+  --text: #1f2933;
+  --muted: #616e7c;
+  --bg: #ffffff;
+  --border: #d9dee3;
+  --accent: #2f5bea;
+  --error: #b42318;
+  --warn-bg: #fff7e6;
+  font: 16px/1.5 system-ui, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+form {
+  display: grid;
+  gap: 1rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.25rem;
+}
+
+label {
+  font-weight: 600;
+}
+
+input,
+select {
+  font: inherit;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+input[aria-invalid='true'],
+select[aria-invalid='true'] {
+  border-color: var(--error);
+}
+
+button {
+  font: inherit;
+  padding: 0.6rem 1rem;
+  border: 0;
+  border-radius: 4px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  justify-self: start;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.field-error,
+.form-error {
+  color: var(--error);
+  font-weight: 400;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.notice {
+  background: var(--warn-bg);
+  border: 1px solid #f5c26b;
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+}
+
+.link-value {
+  word-break: break-all;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.9rem;
+}
+
+.muted {
+  color: var(--muted);
+}
