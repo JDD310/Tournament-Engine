@@ -1,0 +1,45 @@
+# Keep the build context small and free of secrets. The Dockerfile only copies
+# what it names, but anything sent in the context can end up in a layer.
+
+# Secrets and local config
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+.envrc
+
+# VCS, editors, tooling
+.git
+.gitignore
+.github
+.claude
+.vscode
+.idea
+**/.DS_Store
+
+# Python
+**/.venv
+**/venv
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+**/.ruff_cache
+**/.mypy_cache
+**/.coverage
+**/htmlcov
+backend/tests
+
+# Node
+**/node_modules
+frontend/dist
+frontend/coverage
+**/npm-debug.log*
+
+# Docs and scripts are not needed in the image
+docs
+scripts
+*.md
+LICENSE
+Dockerfile
+.dockerignore

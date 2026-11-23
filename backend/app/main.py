@@ -1,8 +1,13 @@
+from pathlib import Path
+
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from app.config import get_settings
 from app.routers import bracket, matches, public, teams, tournaments
+from app.spa import install_spa
 
 FIELD_LABELS = {
     "name": "Tournament name",
@@ -17,6 +22,38 @@ FIELD_LABELS = {
 # The schema is managed by Alembic. Run `python -m app.migrate` (or
 # `alembic upgrade head`) before starting the app; it does not create tables.
 app = FastAPI(title="Tournament Engine")
+
+
+class ReferrerPolicyMiddleware:
+    """Send ``Referrer-Policy: same-origin`` on every response.
+
+    index.html already has the matching <meta> tag; the header also covers
+    API responses and anything else the browser loads from this origin.
+    """
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        async def send_with_header(message: Message) -> None:
+            if message["type"] == "http.response.start":
+                headers = [
+                    (k, v)
+                    for k, v in message.get("headers", [])
+                    if k.lower() != b"referrer-policy"
+                ]
+                headers.append((b"referrer-policy", b"same-origin"))
+                message = {**message, "headers": headers}
+            await send(message)
+
+        await self.app(scope, receive, send_with_header)
+
+
+app.add_middleware(ReferrerPolicyMiddleware)
 app.include_router(tournaments.router)
 app.include_router(teams.router)
 app.include_router(bracket.router)
@@ -68,3 +105,8 @@ async def validation_error_handler(_: Request, exc: RequestValidationError):
 @app.get("/api/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+# Registered last so the API routes above always take precedence.
+if get_settings().frontend_dist:
+    install_spa(app, Path(get_settings().frontend_dist))
