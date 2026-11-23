@@ -190,6 +190,38 @@ button.secondary {
   min-width: 2ch;
 }
 
+.bracket-score {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.score-button {
+  margin-top: 0.25rem;
+}
+
+.score-form {
+  margin-top: 0.25rem;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.score-field input {
+  width: 6rem;
+}
+
+.score-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.champion {
+  background: var(--warn-bg);
+  border: 1px solid #f5c26b;
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  font-size: 1.05rem;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;

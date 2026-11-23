@@ -1,6 +1,6 @@
 import { screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { SIX_TEAM_BRACKET } from '../test/brackets.js'
+import { SIX_TEAM_BRACKET, withResults } from '../test/brackets.js'
 import { jsonResponse, mockEveryFetch, NO_BRACKET, renderAt, TOURNAMENT } from '../test/helpers.jsx'
 
 afterEach(() => vi.unstubAllGlobals())
@@ -26,6 +26,22 @@ describe('TournamentPage', () => {
     for (const [, init] of fetchMock.mock.calls) {
       expect(init?.headers?.['X-Admin-Token']).toBeUndefined()
     }
+  })
+
+  it('shows scores and the champion read-only', async () => {
+    const done = withResults({ 12: [1, 3], 14: [2, 0], 21: [2, 1], 22: [0, 2], 31: [4, 2] })
+    respondTo({
+      '/api/tournaments/abc123': jsonResponse(200, {
+        ...TOURNAMENT,
+        completed_at: '2026-11-22T18:00:00Z',
+      }),
+      '/api/tournaments/abc123/bracket': jsonResponse(200, done),
+    })
+    renderAt('/t/abc123')
+
+    expect(await screen.findByTestId('champion')).toHaveTextContent('Champion: Alpha')
+    expect(screen.queryByRole('button', { name: /score/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument()
   })
 
   it('says when the bracket has not been generated', async () => {
