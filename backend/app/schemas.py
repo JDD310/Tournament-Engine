@@ -139,3 +139,40 @@ class TeamList(BaseModel):
     locked: bool
     # Seeded teams by seed, then unseeded teams in the order they were added.
     teams: list[TeamPublic]
+
+
+class BracketTeam(BaseModel):
+    """A team as shown in the bracket. ``seed`` is None for unseeded teams."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    seed: int | None
+
+
+class MatchPublic(BaseModel):
+    id: int
+    round: int
+    position: int
+    # None while the team is still to be decided, and for team2 of a bye.
+    team1: BracketTeam | None
+    team2: BracketTeam | None
+    winner_id: int | None
+    is_bye: bool
+    # The match the winner moves on to, and as team1 (1) or team2 (2). None for
+    # the final.
+    next_match_id: int | None
+    next_slot: int | None
+
+
+class RoundPublic(BaseModel):
+    round: int
+    name: str
+    matches: list[MatchPublic]
+
+
+class BracketPublic(BaseModel):
+    generated: bool
+    # Round 1 first; matches top to bottom. Empty until generated.
+    rounds: list[RoundPublic]

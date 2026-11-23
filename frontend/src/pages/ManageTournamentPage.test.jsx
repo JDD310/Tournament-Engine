@@ -1,7 +1,8 @@
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { jsonResponse, mockFetch, renderAt, TOURNAMENT } from '../test/helpers.jsx'
+import { SIX_TEAM_BRACKET } from '../test/brackets.js'
+import { jsonResponse, mockFetch, NO_BRACKET, renderAt, TOURNAMENT } from '../test/helpers.jsx'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -85,5 +86,39 @@ describe('ManageTournamentPage', () => {
 
     expect(screen.getByText('Game is required.')).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('ManageTournamentPage bracket', () => {
+  it('reloads the team list as locked after generating the bracket', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const teams = [
+      { id: 1, name: 'Alpha', seed: 1 },
+      { id: 2, name: 'Bravo', seed: 2 },
+    ]
+    let generated = false
+    const fetchMock = vi.fn(async (url, init) => {
+      const method = init?.method ?? 'GET'
+      if (url === '/api/tournaments/abc123/admin') return jsonResponse(200, TOURNAMENT)
+      if (url === '/api/tournaments/abc123/teams') {
+        return jsonResponse(200, { locked: generated, teams })
+      }
+      if (url === '/api/tournaments/abc123/bracket' && method === 'POST') {
+        generated = true
+        return jsonResponse(201, SIX_TEAM_BRACKET)
+      }
+      if (url === '/api/tournaments/abc123/bracket') return jsonResponse(200, NO_BRACKET)
+      throw new Error(`unexpected ${method} ${url}`)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    renderAt('/t/abc123/manage#token=secret-token')
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Generate Bracket' }))
+
+    expect(
+      await screen.findByText('The bracket has been generated, so the team list is locked.'),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Add team' })).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Final' })).toBeInTheDocument()
   })
 })

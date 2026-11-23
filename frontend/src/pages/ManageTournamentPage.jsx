@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
 import { FORMAT_LABELS, getTournamentAsAdmin, updateTournament } from '../api.js'
+import ManageBracket from '../components/ManageBracket.jsx'
 import TeamManager from '../components/TeamManager.jsx'
 import TextField from '../components/TextField.jsx'
 import { validateTournament } from '../validation.js'
@@ -18,6 +19,8 @@ export default function ManageTournamentPage() {
   const [errors, setErrors] = useState({})
   const [saveMessage, setSaveMessage] = useState(null)
   const [saving, setSaving] = useState(false)
+  // Bumped after the bracket is generated so the team list reloads as locked.
+  const [teamsVersion, setTeamsVersion] = useState(0)
 
   useEffect(() => {
     if (!token) return
@@ -131,7 +134,13 @@ export default function ManageTournamentPage() {
         </button>
       </form>
 
-      <TeamManager tournamentId={id} adminToken={token} />
+      <TeamManager tournamentId={id} adminToken={token} reloadKey={teamsVersion} />
+
+      <ManageBracket
+        tournamentId={id}
+        adminToken={token}
+        onGenerated={() => setTeamsVersion((v) => v + 1)}
+      />
     </main>
   )
 }
