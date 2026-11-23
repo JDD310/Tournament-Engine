@@ -37,7 +37,9 @@ def test_downgrade_to_base_removes_tables(engine):
         migrate.downgrade(connection, "base")
         assert inspect(connection).get_table_names() == ["alembic_version"]
         migrate.upgrade(connection)
-        assert {"tournaments", "teams"} <= set(inspect(connection).get_table_names())
+        assert {"tournaments", "teams", "matches"} <= set(
+            inspect(connection).get_table_names()
+        )
 
 
 def test_downgrade_from_teams_keeps_tournaments(engine):
@@ -50,6 +52,16 @@ def test_downgrade_from_teams_keeps_tournaments(engine):
         migrate.upgrade(connection)
         columns = {c["name"] for c in inspect(connection).get_columns("tournaments")}
         assert "bracket_generated" in columns
+
+
+def test_downgrade_from_matches_keeps_teams(engine):
+    with engine.begin() as connection:
+        migrate.downgrade(connection, "0002")
+        tables = set(inspect(connection).get_table_names())
+        assert "matches" not in tables
+        assert {"tournaments", "teams"} <= tables
+        migrate.upgrade(connection)
+        assert "matches" in inspect(connection).get_table_names()
 
 
 def test_offline_sql_for_postgres(monkeypatch):
@@ -75,6 +87,9 @@ def test_offline_sql_for_postgres(monkeypatch):
         in sql
     )
     assert "ADD COLUMN bracket_generated BOOLEAN DEFAULT false NOT NULL" in sql
+    assert "CREATE TABLE matches" in sql
+    assert "FOREIGN KEY(next_match_id) REFERENCES matches (id)" in sql
+    assert "FOREIGN KEY(winner_id) REFERENCES teams (id)" in sql
 
 
 def test_app_startup_does_not_create_tables(monkeypatch):
