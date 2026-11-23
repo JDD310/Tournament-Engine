@@ -4,8 +4,9 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Organizer links carry their token in the query string; never send it
-         to other sites in the Referer header. -->
+    <!-- Organizer links carry their token in the URL fragment, which browsers
+         already leave out of Referer. Keep this as defense in depth so page
+         URLs never reach other sites. -->
     <meta name="referrer" content="same-origin" />
     <title>Tournament Engine</title>
   </head>
