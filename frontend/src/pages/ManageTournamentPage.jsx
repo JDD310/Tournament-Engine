@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useLocation, useParams, useSearchParams } from 'react-router-dom'
+import { useLocation, useParams } from 'react-router-dom'
 import { FORMAT_LABELS, getTournamentAsAdmin, updateTournament } from '../api.js'
 import TeamManager from '../components/TeamManager.jsx'
 import TextField from '../components/TextField.jsx'
@@ -7,9 +7,10 @@ import { validateTournament } from '../validation.js'
 
 export default function ManageTournamentPage() {
   const { id } = useParams()
-  const [searchParams] = useSearchParams()
   const location = useLocation()
-  const token = searchParams.get('token')
+  // The organizer link is /t/{id}/manage#token=... The fragment is never sent
+  // to the server; the token only leaves the browser in the X-Admin-Token header.
+  const token = new URLSearchParams(location.hash.slice(1)).get('token')
 
   const [tournament, setTournament] = useState(null)
   const [fetchError, setFetchError] = useState(null)
@@ -74,7 +75,7 @@ export default function ManageTournamentPage() {
   }
 
   const origin = window.location.origin
-  const adminUrl = `${origin}${location.pathname}${location.search}`
+  const adminUrl = `${origin}${location.pathname}${location.hash}`
   const publicUrl = `${origin}${tournament.public_path}`
 
   return (

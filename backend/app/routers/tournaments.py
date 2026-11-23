@@ -28,7 +28,9 @@ def public_path(tournament_id: str) -> str:
 
 
 def admin_path(tournament_id: str, token: str) -> str:
-    return f"/t/{tournament_id}/manage?token={token}"
+    # The token goes in the fragment, which browsers never send to the server,
+    # so it stays out of access logs. The page sends it as X-Admin-Token.
+    return f"/t/{tournament_id}/manage#token={token}"
 
 
 def to_public(tournament: Tournament) -> TournamentPublic:

@@ -29,7 +29,8 @@ def test_create_tournament_returns_ids_and_links(client):
     assert body["game"] == VALID["game"]
     assert body["format"] == "single_elimination"
     assert body["public_path"] == f"/t/{body['id']}"
-    assert body["admin_path"] == f"/t/{body['id']}/manage?token={body['admin_token']}"
+    assert body["admin_path"] == f"/t/{body['id']}/manage#token={body['admin_token']}"
+    assert "?" not in body["admin_path"]
     assert len(body["admin_token"]) >= 32
 
 
