@@ -51,3 +51,33 @@ export function updateTournament(id, adminToken, fields) {
     adminToken,
   })
 }
+
+function teamsPath(id, suffix = '') {
+  return `/api/tournaments/${encodeURIComponent(id)}/teams${suffix}`
+}
+
+// Resolves to { locked, teams }, with teams in seed order (unseeded last).
+export function listTeams(id) {
+  return request(teamsPath(id))
+}
+
+export function addTeam(id, adminToken, name) {
+  return request(teamsPath(id), { method: 'POST', body: { name }, adminToken })
+}
+
+export function renameTeam(id, adminToken, teamId, name) {
+  return request(teamsPath(id, `/${teamId}`), { method: 'PATCH', body: { name }, adminToken })
+}
+
+export function removeTeam(id, adminToken, teamId) {
+  return request(teamsPath(id, `/${teamId}`), { method: 'DELETE', adminToken })
+}
+
+// teamIds: the seeded teams, top seed first. Teams left out become unseeded.
+export function setSeeding(id, adminToken, teamIds) {
+  return request(teamsPath(id, '/seeding'), {
+    method: 'PUT',
+    body: { team_ids: teamIds },
+    adminToken,
+  })
+}

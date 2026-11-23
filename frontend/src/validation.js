@@ -17,3 +17,20 @@ export function validateTournament({ name, game, format }) {
   if (format !== undefined && !format) errors.format = 'Format is required.'
   return errors
 }
+
+// Same comparison as the backend: ignores case, surrounding whitespace and
+// repeated inner whitespace. The server has the final say (it also folds
+// characters like "ß"), so this only catches the common cases early.
+export function teamNameKey(name) {
+  return name.trim().split(/\s+/).join(' ').toLowerCase()
+}
+
+export function validateTeamName(name, teams, ownId = null) {
+  const error = requiredText(name, 'Team name')
+  if (error) return error
+  const key = teamNameKey(name)
+  if (teams.some((team) => team.id !== ownId && teamNameKey(team.name) === key)) {
+    return `A team named "${name.trim()}" is already in this tournament.`
+  }
+  return null
+}

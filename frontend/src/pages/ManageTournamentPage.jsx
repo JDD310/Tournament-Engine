@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
 import { FORMAT_LABELS, getTournamentAsAdmin, updateTournament } from '../api.js'
+import TeamManager from '../components/TeamManager.jsx'
 import TextField from '../components/TextField.jsx'
 import { validateTournament } from '../validation.js'
 
@@ -129,6 +130,8 @@ export default function ManageTournamentPage() {
           {saving ? 'Saving...' : 'Save changes'}
         </button>
       </form>
+
+      <TeamManager tournamentId={id} adminToken={token} />
     </main>
   )
 }

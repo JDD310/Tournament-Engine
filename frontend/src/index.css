@@ -88,3 +88,40 @@ button:disabled {
 .muted {
   color: var(--muted);
 }
+
+button.secondary {
+  padding: 0.3rem 0.6rem;
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.team-list {
+  padding-left: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.team-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.team-seed {
+  font-weight: 600;
+  min-width: 2ch;
+  display: inline-block;
+}
+
+.team-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
