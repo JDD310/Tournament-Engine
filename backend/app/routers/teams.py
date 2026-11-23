@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Response, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -11,7 +11,13 @@ from app.routers.tournaments import (
     require_admin,
 )
 from app.schemas import TeamList, TeamName, TeamPublic, TeamSeeding
-from app.teams import renumber_seeds, seed_order, team_name_key
+from app.teams import (
+    MAX_TEAMS,
+    renumber_seeds,
+    seed_order,
+    team_name_key,
+    too_many_teams_message,
+)
 
 TEAMS_LOCKED = "The bracket has been generated, so the teams can no longer be changed."
 
@@ -35,8 +41,12 @@ def team_list(db: Session, tournament: Tournament) -> TeamList:
 
 
 def require_editable(db: Session, tournament_id: str, token: str | None) -> Tournament:
-    """The tournament, if the token is valid and the teams are not locked."""
-    tournament = require_admin(db, tournament_id, token)
+    """The tournament, if the token is valid and the teams are not locked.
+
+    Takes the tournament row lock first, so the lock check and the change that
+    follows can't interleave with another team change or bracket generation.
+    """
+    tournament = require_admin(db, tournament_id, token, lock=True)
     if tournament.bracket_generated:
         raise HTTPException(status.HTTP_409_CONFLICT, TEAMS_LOCKED)
     return tournament
@@ -90,6 +100,9 @@ def add_team(
 ) -> TeamPublic:
     """Add a team. New teams are unseeded until the organizer seeds them."""
     require_editable(db, tournament_id, x_admin_token)
+    count = db.scalar(select(func.count()).where(Team.tournament_id == tournament_id))
+    if count >= MAX_TEAMS:
+        raise HTTPException(status.HTTP_409_CONFLICT, too_many_teams_message())
     key = ensure_name_available(db, tournament_id, payload.name)
     team = Team(tournament_id=tournament_id, name=payload.name, name_key=key)
     db.add(team)

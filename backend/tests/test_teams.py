@@ -1,7 +1,12 @@
 import pytest
 
 from app.models import Team, Tournament
-from app.teams import MIN_BRACKET_TEAMS, bracket_readiness_error, team_name_key
+from app.teams import (
+    MAX_TEAMS,
+    MIN_BRACKET_TEAMS,
+    bracket_readiness_error,
+    team_name_key,
+)
 
 TOURNAMENT = {
     "name": "Friday Night Smash",
@@ -518,3 +523,61 @@ def test_can_remove_teams_below_the_minimum(client, tournament, admin):
         client.delete(teams_url(tournament, f"/{b}"), headers=admin).status_code == 204
     )
     assert listing(client, tournament)["teams"] == []
+
+
+# --- Team cap ------------------------------------------------------------
+
+
+def fill(db_session, tournament, count):
+    db_session.add_all(
+        Team(tournament_id=tournament["id"], name=f"T{i}", name_key=f"t{i}")
+        for i in range(count)
+    )
+    db_session.commit()
+
+
+def test_can_add_up_to_the_team_cap(client, tournament, admin, db_session):
+    fill(db_session, tournament, MAX_TEAMS - 1)
+
+    assert add(client, tournament, admin, "Last One").status_code == 201
+    assert len(listing(client, tournament)["teams"]) == MAX_TEAMS
+
+
+def test_adding_past_the_team_cap_is_rejected(client, tournament, admin, db_session):
+    assert MAX_TEAMS == 256
+    fill(db_session, tournament, MAX_TEAMS)
+
+    response = add(client, tournament, admin, "One Too Many")
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "A tournament can have at most 256 teams."
+    assert len(listing(client, tournament)["teams"]) == MAX_TEAMS
+
+
+def test_cap_frees_up_after_a_remove(client, tournament, admin, db_session):
+    fill(db_session, tournament, MAX_TEAMS)
+    first = listing(client, tournament)["teams"][0]["id"]
+    client.delete(teams_url(tournament, f"/{first}"), headers=admin)
+
+    assert add(client, tournament, admin, "Replacement").status_code == 201
+
+
+def test_seeding_list_longer_than_the_cap_is_rejected(client, tournament, admin):
+    response = seed(client, tournament, admin, list(range(1, MAX_TEAMS + 2)))
+
+    assert response.status_code == 422
+    assert response.json()["errors"] == [
+        {"field": "team_ids", "message": "A tournament can have at most 256 teams."}
+    ]
+
+
+def test_seeding_every_team_at_the_cap_is_allowed(
+    client, tournament, admin, db_session
+):
+    fill(db_session, tournament, MAX_TEAMS)
+    ids = [t["id"] for t in listing(client, tournament)["teams"]]
+
+    response = seed(client, tournament, admin, list(reversed(ids)))
+
+    assert response.status_code == 200
+    assert [t["seed"] for t in response.json()["teams"]] == list(range(1, 257))

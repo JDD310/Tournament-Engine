@@ -70,7 +70,10 @@ def test_offline_sql_for_postgres(monkeypatch):
     assert "CREATE TABLE alembic_version" in sql
     assert "CREATE TABLE teams" in sql
     assert "id SERIAL NOT NULL" in sql
-    assert "FOREIGN KEY(tournament_id) REFERENCES tournaments (id) ON DELETE CASCADE" in sql
+    assert (
+        "FOREIGN KEY(tournament_id) REFERENCES tournaments (id) ON DELETE CASCADE"
+        in sql
+    )
     assert "ADD COLUMN bracket_generated BOOLEAN DEFAULT false NOT NULL" in sql
 
 

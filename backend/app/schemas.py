@@ -11,6 +11,7 @@ from pydantic import (
 )
 
 from app.models import TEAM_NAME_MAX_LENGTH
+from app.teams import MAX_TEAMS, too_many_teams_message
 
 NAME_MAX_LENGTH = 100
 GAME_MAX_LENGTH = 100
@@ -104,8 +105,18 @@ class TeamName(BaseModel):
 class TeamSeeding(BaseModel):
     team_ids: list[StrictInt] = Field(
         description="IDs of the seeded teams, top seed first. Teams that are "
-        "left out become unseeded."
+        "left out become unseeded.",
+        json_schema_extra={"maxItems": MAX_TEAMS},
     )
+
+    @field_validator("team_ids", mode="before")
+    @classmethod
+    def not_too_long(cls, value: object) -> object:
+        # Checked before the items are validated, with the same message as the
+        # team cap, rather than Field(max_length=...)'s generic one.
+        if isinstance(value, list) and len(value) > MAX_TEAMS:
+            raise ValueError(too_many_teams_message())
+        return value
 
     @field_validator("team_ids")
     @classmethod

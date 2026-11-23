@@ -3,8 +3,9 @@ import { addTeam, listTeams, removeTeam, renameTeam, setSeeding } from '../api.j
 import { validateTeamName } from '../validation.js'
 import TextField from './TextField.jsx'
 
-// Mirrors MIN_BRACKET_TEAMS in backend/app/teams.py.
+// Mirror MIN_BRACKET_TEAMS and MAX_TEAMS in backend/app/teams.py.
 export const MIN_BRACKET_TEAMS = 2
+export const MAX_TEAMS = 256
 
 // The organizer's team list: add, rename, remove and seed teams. Seeded teams
 // (1 = top seed) are listed first; unseeded teams follow in the order added.
@@ -87,6 +88,12 @@ export default function TeamManager({ tournamentId, adminToken }) {
   }
 
   function handleRemove(team) {
+    // Not undoable: re-adding gives an unseeded team, and lower seeds have moved.
+    const question =
+      team.seed === null
+        ? `Remove ${team.name}?`
+        : `Remove ${team.name}? Teams seeded below it will move up one seed.`
+    if (!window.confirm(question)) return
     if (editing?.id === team.id) setEditing(null)
     run(() => removeTeam(tournamentId, adminToken, team.id))
   }
@@ -115,6 +122,7 @@ export default function TeamManager({ tournamentId, adminToken }) {
     )
   }
 
+  const full = teams.length >= MAX_TEAMS
   const seeded = teams.filter((team) => team.seed !== null)
   const unseeded = teams.filter((team) => team.seed === null)
   const seedIds = seeded.map((team) => team.id)
@@ -270,7 +278,12 @@ export default function TeamManager({ tournamentId, adminToken }) {
             onChange={setNewName}
             error={addError}
           />
-          <button type="submit" disabled={busy}>
+          {full && (
+            <p className="muted" role="status">
+              This tournament has the maximum of {MAX_TEAMS} teams. Remove one to add another.
+            </p>
+          )}
+          <button type="submit" disabled={busy || full}>
             Add team
           </button>
         </form>

@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
+from sqlalchemy import Select, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -51,8 +52,40 @@ def get_tournament_or_404(db: Session, tournament_id: str) -> Tournament:
     return tournament
 
 
-def require_admin(db: Session, tournament_id: str, token: str | None) -> Tournament:
-    tournament = get_tournament_or_404(db, tournament_id)
+def tournament_lock_query(tournament_id: str) -> Select:
+    return select(Tournament).where(Tournament.id == tournament_id).with_for_update()
+
+
+def lock_tournament(db: Session, tournament_id: str) -> Tournament:
+    """Load the tournament with a row lock held until the transaction ends.
+
+    Every change to a tournament's teams takes this lock first, so changes to
+    one tournament run one at a time and each sees the latest teams and
+    ``bracket_generated``. Bracket generation (TE-6) must take it too, before it
+    reads the teams, so no team change can land while the bracket is built.
+
+    Postgres: ``SELECT ... FOR UPDATE``. SQLite ignores ``FOR UPDATE``, so this
+    is just a read there (fine for tests and local use).
+    """
+    tournament = db.scalars(
+        tournament_lock_query(tournament_id).execution_options(populate_existing=True)
+    ).first()
+    if tournament is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Tournament not found.")
+    return tournament
+
+
+def require_admin(
+    db: Session, tournament_id: str, token: str | None, *, lock: bool = False
+) -> Tournament:
+    """The tournament, if ``token`` is its organizer token.
+
+    With ``lock=True`` the tournament row is locked first (see lock_tournament).
+    """
+    if lock:
+        tournament = lock_tournament(db, tournament_id)
+    else:
+        tournament = get_tournament_or_404(db, tournament_id)
     if not verify_admin_token(token, tournament.admin_token_hash):
         raise HTTPException(
             status.HTTP_403_FORBIDDEN,

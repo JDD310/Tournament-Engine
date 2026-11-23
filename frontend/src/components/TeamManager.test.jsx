@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   jsonResponse,
   mockEveryFetch,
@@ -8,9 +8,16 @@ import {
   renderAt,
   TOURNAMENT,
 } from '../test/helpers.jsx'
-import TeamManager from './TeamManager.jsx'
+import TeamManager, { MAX_TEAMS } from './TeamManager.jsx'
 
 afterEach(() => vi.unstubAllGlobals())
+
+// Remove asks for confirmation; tests answer yes unless they say otherwise.
+function answerConfirm(answer) {
+  return vi.spyOn(window, 'confirm').mockReturnValue(answer)
+}
+
+beforeEach(() => answerConfirm(true))
 
 const ALPHA = { id: 1, name: 'Alpha', seed: 1 }
 const BRAVO = { id: 2, name: 'Bravo', seed: 2 }
@@ -289,6 +296,63 @@ describe('TeamManager', () => {
     expect(del.init.headers['X-Admin-Token']).toBe('secret-token')
   })
 
+  it('asks before removing a seeded team', async () => {
+    const confirm = answerConfirm(false)
+    const fetchMock = mockEveryFetch(teamList([ALPHA, BRAVO]))
+    renderManager()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove Alpha' }))
+
+    expect(confirm).toHaveBeenCalledWith(
+      'Remove Alpha? Teams seeded below it will move up one seed.',
+    )
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(seededNames()).toEqual(['1. Alpha', '2. Bravo'])
+  })
+
+  it('asks before removing an unseeded team', async () => {
+    const confirm = answerConfirm(true)
+    const fetchMock = mockEveryFetch(teamList([CHARLIE]), jsonResponse(204, null), teamList([]))
+    renderManager()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove Charlie' }))
+
+    expect(confirm).toHaveBeenCalledWith('Remove Charlie?')
+    expect(await screen.findByText('No teams yet.')).toBeInTheDocument()
+    expect(fetchMock.mock.calls[1][1].method).toBe('DELETE')
+  })
+
+  it('stops adding at the team cap', async () => {
+    const full = Array.from({ length: MAX_TEAMS }, (_, i) => ({
+      id: i + 1,
+      name: `T${i}`,
+      seed: null,
+    }))
+    mockEveryFetch(teamList(full))
+    renderManager()
+
+    expect(
+      await screen.findByText(
+        'This tournament has the maximum of 256 teams. Remove one to add another.',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add team' })).toBeDisabled()
+  })
+
+  it("shows the server's team cap error", async () => {
+    mockEveryFetch(
+      teamList([ALPHA]),
+      jsonResponse(409, { detail: 'A tournament can have at most 256 teams.' }),
+      teamList([ALPHA]),
+    )
+    renderManager()
+
+    await userEvent.type(await screen.findByLabelText('Team name'), 'Zulu')
+    await userEvent.click(screen.getByRole('button', { name: 'Add team' }))
+
+    expect(await screen.findByText('A tournament can have at most 256 teams.')).toBeInTheDocument()
+  })
+
   it('hides every control once the list is locked', async () => {
     mockEveryFetch(teamList([ALPHA, BRAVO, CHARLIE], true))
     renderManager()
@@ -328,15 +392,13 @@ describe('TeamManager', () => {
 
 describe('ManageTournamentPage team panel', () => {
   it('loads the teams once the organizer link is verified', async () => {
-    // The token is in both the query string and the fragment so this test
-    // passes whichever way the page reads it (PR #3 moves it to the fragment).
     const fetchMock = mockFetch(jsonResponse(200, TOURNAMENT))
     const teamFetch = vi.fn(async () => teamList([ALPHA, CHARLIE]))
     const pageFetch = globalThis.fetch
     vi.stubGlobal('fetch', (url, init) =>
       url.endsWith('/teams') ? teamFetch(url, init) : pageFetch(url, init),
     )
-    renderAt('/t/abc123/manage?token=secret-token#token=secret-token')
+    renderAt('/t/abc123/manage#token=secret-token')
 
     expect(await screen.findByRole('heading', { name: 'Teams' })).toBeInTheDocument()
     expect(await screen.findByText('Charlie')).toBeInTheDocument()

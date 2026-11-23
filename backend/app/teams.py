@@ -7,6 +7,15 @@ from app.models import Team
 # A bracket needs at least this many teams.
 MIN_BRACKET_TEAMS = 2
 
+# Upper limit on teams per tournament: a full 8-round single-elimination
+# bracket. Far above any expected event, and it keeps each request's work
+# (load and sort every team) and the seeding body small.
+MAX_TEAMS = 256
+
+
+def too_many_teams_message() -> str:
+    return f"A tournament can have at most {MAX_TEAMS} teams."
+
 
 def team_name_key(name: str) -> str:
     """The form of a team name used for the uniqueness check.
