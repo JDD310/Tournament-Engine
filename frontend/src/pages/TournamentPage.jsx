@@ -4,6 +4,8 @@ import { ApiError, FORMAT_LABELS, getPublicView, STATUS_LABELS } from '../api.js
 import BracketView from '../components/BracketView.jsx'
 import NotFoundPage from './NotFoundPage.jsx'
 
+const UNKNOWN_STATUS_LABEL = 'Unavailable'
+
 // Public, read-only tournament page for spectators: the details, the status,
 // and the bracket with scores (or, before it is generated, the teams so far).
 // It never shows edit controls; organizers manage from /t/:id/manage.
@@ -56,6 +58,9 @@ export default function TournamentPage() {
   }
 
   const { tournament, teams, bracket } = view
+  // A status this page doesn't know yet (added to the API later) gets a
+  // neutral label and badge rather than its raw value.
+  const knownStatus = Object.hasOwn(STATUS_LABELS, tournament.status)
   return (
     <main>
       <h1>{tournament.name}</h1>
@@ -64,8 +69,11 @@ export default function TournamentPage() {
       </p>
       <p className="tournament-status">
         Status:{' '}
-        <span className={`status-badge status-${tournament.status}`} data-testid="status">
-          {STATUS_LABELS[tournament.status] ?? tournament.status}
+        <span
+          className={`status-badge status-${knownStatus ? tournament.status : 'unknown'}`}
+          data-testid="status"
+        >
+          {knownStatus ? STATUS_LABELS[tournament.status] : UNKNOWN_STATUS_LABEL}
         </span>
       </p>
       <section aria-labelledby="bracket-heading">

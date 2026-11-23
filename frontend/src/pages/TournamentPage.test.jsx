@@ -127,6 +127,19 @@ describe('TournamentPage', () => {
     expectNoEditControls()
   })
 
+  it.each(['on_hold', 'constructor'])(
+    'shows a neutral label for a status it does not know (%s)',
+    async (status) => {
+      respondWith(publicView({ status }))
+      renderAt('/t/abc123')
+
+      const badge = await screen.findByTestId('status')
+      expect(badge).toHaveTextContent(/^Unavailable$/)
+      expect(badge).toHaveClass('status-badge', 'status-unknown')
+      expect(screen.queryByText(status, { exact: false })).not.toBeInTheDocument()
+    },
+  )
+
   it('puts the bracket in its own sideways-scrolling region', async () => {
     respondWith(
       publicView({ status: 'in_progress', teams: LOCKED_TEAMS, bracket: SIX_TEAM_BRACKET }),
