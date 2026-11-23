@@ -23,7 +23,7 @@ describe('CreateTournamentPage', () => {
       jsonResponse(201, {
         ...TOURNAMENT,
         admin_token: 'secret-token',
-        admin_path: '/t/abc123/manage?token=secret-token',
+        admin_path: '/t/abc123/manage#token=secret-token',
       }),
       jsonResponse(200, TOURNAMENT),
     )
@@ -47,6 +47,7 @@ describe('CreateTournamentPage', () => {
     })
     const [adminUrl, adminInit] = fetchMock.mock.calls[1]
     expect(adminUrl).toBe('/api/tournaments/abc123/admin')
+    expect(fetchMock.mock.calls.every(([url]) => !url.includes('secret-token'))).toBe(true)
     expect(adminInit.headers['X-Admin-Token']).toBe('secret-token')
   })
 
