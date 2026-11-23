@@ -1,6 +1,8 @@
 import pytest
+from sqlalchemy.exc import IntegrityError
 
 from app.models import Tournament
+from app.routers import tournaments
 from app.security import hash_admin_token
 
 VALID = {
@@ -188,3 +190,25 @@ def test_malformed_body_has_clear_message(client, body, message):
         "detail": message,
         "errors": [{"field": "", "message": message}],
     }
+
+
+def test_create_retries_on_id_collision(client, monkeypatch):
+    existing = create(client).json()
+    ids = iter([existing["id"], "fresh-id"])
+    monkeypatch.setattr(tournaments, "generate_tournament_id", lambda: next(ids))
+
+    response = create(client)
+
+    assert response.status_code == 201
+    assert response.json()["id"] == "fresh-id"
+    assert (
+        client.get(f"/api/tournaments/{existing['id']}").json()["name"] == VALID["name"]
+    )
+
+
+def test_create_gives_up_after_repeated_collisions(client, monkeypatch):
+    existing = create(client).json()
+    monkeypatch.setattr(tournaments, "generate_tournament_id", lambda: existing["id"])
+
+    with pytest.raises(IntegrityError):
+        create(client)

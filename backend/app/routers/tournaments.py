@@ -1,10 +1,11 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.models import Tournament
+from app.models import Tournament, generate_tournament_id
 from app.schemas import (
     TournamentCreate,
     TournamentCreated,
@@ -12,6 +13,9 @@ from app.schemas import (
     TournamentUpdate,
 )
 from app.security import generate_admin_token, hash_admin_token, verify_admin_token
+
+# A 48-bit ID collision is astronomically unlikely, but retrying costs nothing.
+CREATE_ATTEMPTS = 3
 
 router = APIRouter(prefix="/api/tournaments", tags=["tournaments"])
 
@@ -58,14 +62,24 @@ def require_admin(db: Session, tournament_id: str, token: str | None) -> Tournam
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=TournamentCreated)
 def create_tournament(payload: TournamentCreate, db: DbSession) -> TournamentCreated:
     token = generate_admin_token()
-    tournament = Tournament(
-        name=payload.name,
-        game=payload.game,
-        format=payload.format.value,
-        admin_token_hash=hash_admin_token(token),
-    )
-    db.add(tournament)
-    db.commit()
+    for attempt in range(CREATE_ATTEMPTS):
+        tournament = Tournament(
+            id=generate_tournament_id(),
+            name=payload.name,
+            game=payload.game,
+            format=payload.format.value,
+            admin_token_hash=hash_admin_token(token),
+        )
+        db.add(tournament)
+        try:
+            db.commit()
+            break
+        except IntegrityError:
+            # The only unique constraint is the primary key, so this is an ID
+            # collision. Roll back and try again with a fresh ID.
+            db.rollback()
+            if attempt == CREATE_ATTEMPTS - 1:
+                raise
     return TournamentCreated(
         **to_public(tournament).model_dump(),
         admin_token=token,
