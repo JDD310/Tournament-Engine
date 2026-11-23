@@ -9,7 +9,8 @@ export const MAX_TEAMS = 256
 
 // The organizer's team list: add, rename, remove and seed teams. Seeded teams
 // (1 = top seed) are listed first; unseeded teams follow in the order added.
-export default function TeamManager({ tournamentId, adminToken }) {
+// reloadKey: change it to reload the list (e.g. after the bracket is generated).
+export default function TeamManager({ tournamentId, adminToken, reloadKey }) {
   const [teams, setTeams] = useState(null)
   const [locked, setLocked] = useState(false)
   const [loadError, setLoadError] = useState(null)
@@ -36,7 +37,7 @@ export default function TeamManager({ tournamentId, adminToken }) {
     return () => {
       cancelled = true
     }
-  }, [tournamentId])
+  }, [tournamentId, reloadKey])
 
   // Runs one change, then shows the server's current list (even after an
   // error, so a lock or a change from another tab shows up). Returns whether

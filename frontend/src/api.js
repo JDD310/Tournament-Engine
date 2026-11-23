@@ -81,3 +81,16 @@ export function setSeeding(id, adminToken, teamIds) {
     adminToken,
   })
 }
+
+// Resolves to { generated, rounds }. rounds is empty until it is generated.
+export function getBracket(id) {
+  return request(`/api/tournaments/${encodeURIComponent(id)}/bracket`)
+}
+
+// Generates the single-elimination bracket and locks the team list.
+export function generateBracket(id, adminToken) {
+  return request(`/api/tournaments/${encodeURIComponent(id)}/bracket`, {
+    method: 'POST',
+    adminToken,
+  })
+}
