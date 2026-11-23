@@ -2,6 +2,13 @@ export const FORMAT_LABELS = {
   single_elimination: 'Single elimination',
 }
 
+// The API derives status from the bracket and the final's result.
+export const STATUS_LABELS = {
+  setting_up: 'Setting up',
+  in_progress: 'In progress',
+  complete: 'Complete',
+}
+
 export class ApiError extends Error {
   constructor(status, message, fieldErrors = {}) {
     super(message)
@@ -36,8 +43,9 @@ export function createTournament(fields) {
   return request('/api/tournaments', { method: 'POST', body: fields })
 }
 
-export function getTournament(id) {
-  return request(`/api/tournaments/${encodeURIComponent(id)}`)
+// Public, read-only: resolves to { tournament, teams, bracket } from one read.
+export function getPublicView(id) {
+  return request(`/api/tournaments/${encodeURIComponent(id)}/public`)
 }
 
 export function getTournamentAsAdmin(id, adminToken) {

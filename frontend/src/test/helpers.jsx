@@ -55,4 +55,5 @@ export const TOURNAMENT = {
   created_at: '2026-11-22T12:00:00Z',
   public_path: '/t/abc123',
   completed_at: null,
+  status: 'setting_up',
 }

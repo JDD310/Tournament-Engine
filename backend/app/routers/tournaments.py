@@ -11,6 +11,7 @@ from app.schemas import (
     TournamentCreate,
     TournamentCreated,
     TournamentPublic,
+    TournamentStatus,
     TournamentUpdate,
 )
 from app.security import generate_admin_token, hash_admin_token, verify_admin_token
@@ -34,6 +35,16 @@ def admin_path(tournament_id: str, token: str) -> str:
     return f"/t/{tournament_id}/manage#token={token}"
 
 
+def tournament_status(tournament: Tournament) -> TournamentStatus:
+    # Derived rather than stored, so it can't drift from the columns it reads.
+    # completed_at is only ever set (by reporting the final), never cleared.
+    if tournament.completed_at is not None:
+        return TournamentStatus.complete
+    if tournament.bracket_generated:
+        return TournamentStatus.in_progress
+    return TournamentStatus.setting_up
+
+
 def to_public(tournament: Tournament) -> TournamentPublic:
     return TournamentPublic(
         id=tournament.id,
@@ -43,6 +54,7 @@ def to_public(tournament: Tournament) -> TournamentPublic:
         created_at=tournament.created_at,
         public_path=public_path(tournament.id),
         completed_at=tournament.completed_at,
+        status=tournament_status(tournament),
     )
 
 
