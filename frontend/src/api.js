@@ -43,10 +43,6 @@ export function createTournament(fields) {
   return request('/api/tournaments', { method: 'POST', body: fields })
 }
 
-export function getTournament(id) {
-  return request(`/api/tournaments/${encodeURIComponent(id)}`)
-}
-
 // Public, read-only: resolves to { tournament, teams, bracket } from one read.
 export function getPublicView(id) {
   return request(`/api/tournaments/${encodeURIComponent(id)}/public`)
