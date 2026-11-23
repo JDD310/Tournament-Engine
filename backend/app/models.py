@@ -40,6 +40,11 @@ class Tournament(Base):
     bracket_generated: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default=false()
     )
+    # Set when the final is reported (TE-9): the tournament is Complete and the
+    # final's winner is the champion. NULL while the tournament is running.
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class Team(Base):
@@ -73,6 +78,10 @@ class Match(Base):
     ``next_slot`` is 1) or ``team2`` (2), so score reporting (TE-9) only has to
     set ``winner_id`` and copy it into that slot.
 
+    ``team1_score`` and ``team2_score`` are the reported result (both NULL
+    until reported; always NULL for a bye). A best-of-N series (TE-13) can keep
+    these as games won and store the individual games in a table of their own.
+
     A bye is a first-round match with no ``team2``. It is created already won
     by ``team1``, whose name is already in the next match.
     """
@@ -104,3 +113,5 @@ class Match(Base):
         ForeignKey("matches.id"), nullable=True
     )
     next_slot: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    team1_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    team2_score: Mapped[int | None] = mapped_column(Integer, nullable=True)

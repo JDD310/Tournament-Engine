@@ -94,3 +94,13 @@ export function generateBracket(id, adminToken) {
     adminToken,
   })
 }
+
+// Reports (or corrects) a match's score. The higher score wins and advances.
+// Resolves to the updated bracket.
+export function reportScore(id, adminToken, matchId, team1Score, team2Score) {
+  return request(`/api/tournaments/${encodeURIComponent(id)}/matches/${matchId}/score`, {
+    method: 'PUT',
+    body: { team1_score: team1Score, team2_score: team2Score },
+    adminToken,
+  })
+}

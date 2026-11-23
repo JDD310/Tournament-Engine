@@ -16,7 +16,7 @@ export function jsonResponse(status, body) {
 }
 
 export const EMPTY_TEAMS = { locked: false, teams: [] }
-export const NO_BRACKET = { generated: false, rounds: [] }
+export const NO_BRACKET = { generated: false, rounds: [], champion: null }
 
 function panelResponse(url, init) {
   if ((init?.method ?? 'GET') !== 'GET') return null
@@ -54,4 +54,5 @@ export const TOURNAMENT = {
   format: 'single_elimination',
   created_at: '2026-11-22T12:00:00Z',
   public_path: '/t/abc123',
+  completed_at: null,
 }

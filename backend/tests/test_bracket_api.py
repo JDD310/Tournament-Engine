@@ -348,7 +348,7 @@ def test_bracket_before_generation_is_empty(client, tournament):
     response = client.get(url(tournament))
 
     assert response.status_code == 200
-    assert response.json() == {"generated": False, "rounds": []}
+    assert response.json() == {"generated": False, "rounds": [], "champion": None}
 
 
 def test_bracket_is_public_and_matches_the_generation_response(
@@ -394,7 +394,11 @@ def test_brackets_are_per_tournament(client, tournament, admin, db_session):
 
     generate(client, tournament, admin)
 
-    assert client.get(url(other)).json() == {"generated": False, "rounds": []}
+    assert client.get(url(other)).json() == {
+        "generated": False,
+        "rounds": [],
+        "champion": None,
+    }
     assert generate(client, other, other_admin).status_code == 201
     assert pairings(client.get(url(tournament)).json(), 1) == [("A", "B")]
     teams_in_other = set(

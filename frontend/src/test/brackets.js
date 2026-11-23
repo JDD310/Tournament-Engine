@@ -18,11 +18,14 @@ const match = (id, round, position, team1, team2, extra = {}) => ({
   is_bye: false,
   next_match_id: null,
   next_slot: null,
+  team1_score: null,
+  team2_score: null,
   ...extra,
 })
 
 export const SIX_TEAM_BRACKET = {
   generated: true,
+  champion: null,
   rounds: [
     {
       round: 1,
@@ -44,4 +47,20 @@ export const SIX_TEAM_BRACKET = {
     },
     { round: 3, name: 'Final', matches: [match(31, 3, 0, null, null)] },
   ],
+}
+
+// SIX_TEAM_BRACKET with the matches in `results` reported. results maps a
+// match ID to [team1Score, team2Score]; each winner is copied into the slot
+// it feeds, the way the API does it. The final's winner becomes champion.
+export function withResults(results) {
+  const bracket = structuredClone(SIX_TEAM_BRACKET)
+  const byId = new Map(bracket.rounds.flatMap((r) => r.matches).map((m) => [m.id, m]))
+  for (const [id, [team1Score, team2Score]] of Object.entries(results)) {
+    const m = byId.get(Number(id))
+    const winner = team1Score > team2Score ? m.team1 : m.team2
+    Object.assign(m, { team1_score: team1Score, team2_score: team2Score, winner_id: winner.id })
+    if (m.next_match_id === null) bracket.champion = winner
+    else byId.get(m.next_match_id)[`team${m.next_slot}`] = winner
+  }
+  return bracket
 }
