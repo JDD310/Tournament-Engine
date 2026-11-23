@@ -35,9 +35,21 @@ def test_migrations_are_at_head(engine):
 def test_downgrade_to_base_removes_tables(engine):
     with engine.begin() as connection:
         migrate.downgrade(connection, "base")
-        assert "tournaments" not in inspect(connection).get_table_names()
+        assert inspect(connection).get_table_names() == ["alembic_version"]
         migrate.upgrade(connection)
-        assert "tournaments" in inspect(connection).get_table_names()
+        assert {"tournaments", "teams"} <= set(inspect(connection).get_table_names())
+
+
+def test_downgrade_from_teams_keeps_tournaments(engine):
+    with engine.begin() as connection:
+        migrate.downgrade(connection, "0001")
+        inspector = inspect(connection)
+        assert "teams" not in inspector.get_table_names()
+        columns = {c["name"] for c in inspector.get_columns("tournaments")}
+        assert "bracket_generated" not in columns
+        migrate.upgrade(connection)
+        columns = {c["name"] for c in inspect(connection).get_columns("tournaments")}
+        assert "bracket_generated" in columns
 
 
 def test_offline_sql_for_postgres(monkeypatch):
@@ -56,6 +68,10 @@ def test_offline_sql_for_postgres(monkeypatch):
     assert "CREATE TABLE tournaments" in sql
     assert "created_at TIMESTAMP WITH TIME ZONE NOT NULL" in sql
     assert "CREATE TABLE alembic_version" in sql
+    assert "CREATE TABLE teams" in sql
+    assert "id SERIAL NOT NULL" in sql
+    assert "FOREIGN KEY(tournament_id) REFERENCES tournaments (id) ON DELETE CASCADE" in sql
+    assert "ADD COLUMN bracket_generated BOOLEAN DEFAULT false NOT NULL" in sql
 
 
 def test_app_startup_does_not_create_tables(monkeypatch):

@@ -15,8 +15,29 @@ export function jsonResponse(status, body) {
   return { ok: status >= 200 && status < 300, status, json: async () => body }
 }
 
-// Queue fetch responses in call order.
+export const EMPTY_TEAMS = { locked: false, teams: [] }
+
+function isTeamListRequest(url, init) {
+  return (init?.method ?? 'GET') === 'GET' && /^\/api\/tournaments\/[^/]+\/teams$/.test(url)
+}
+
+// Queue fetch responses in call order. The management page also loads its
+// team list; those GETs get an empty list and are left out of the returned
+// mock, so page tests don't depend on the team panel's requests. Use
+// mockEveryFetch to queue (and record) the team requests too.
 export function mockFetch(...responses) {
+  const fetchMock = vi.fn()
+  for (const r of responses) fetchMock.mockResolvedValueOnce(r)
+  vi.stubGlobal('fetch', (url, init) =>
+    isTeamListRequest(url, init)
+      ? Promise.resolve(jsonResponse(200, EMPTY_TEAMS))
+      : fetchMock(url, init),
+  )
+  return fetchMock
+}
+
+// Queue fetch responses in call order, team list requests included.
+export function mockEveryFetch(...responses) {
   const fetchMock = vi.fn()
   for (const r of responses) fetchMock.mockResolvedValueOnce(r)
   vi.stubGlobal('fetch', fetchMock)

@@ -2,15 +2,21 @@ from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.routers import tournaments
+from app.routers import teams, tournaments
 
-FIELD_LABELS = {"name": "Tournament name", "game": "Game", "format": "Format"}
+FIELD_LABELS = {
+    "name": "Tournament name",
+    "game": "Game",
+    "format": "Format",
+    "team_ids": "Team order",
+}
 
 
 # The schema is managed by Alembic. Run `python -m app.migrate` (or
 # `alembic upgrade head`) before starting the app; it does not create tables.
 app = FastAPI(title="Tournament Engine")
 app.include_router(tournaments.router)
+app.include_router(teams.router)
 
 
 def _field_name(error: dict) -> str:
