@@ -57,9 +57,13 @@ def bracket_response(db: Session, tournament: Tournament) -> BracketPublic:
                 is_bye=match.is_bye,
                 next_match_id=match.next_match_id,
                 next_slot=match.next_slot,
+                team1_score=match.team1_score,
+                team2_score=match.team2_score,
             )
         )
-    return BracketPublic(generated=True, rounds=by_round)
+    final = by_round[-1].matches[0] if by_round else None
+    champion = teams.get(final.winner_id) if final and final.winner_id else None
+    return BracketPublic(generated=True, rounds=by_round, champion=champion)
 
 
 @router.get("", response_model=BracketPublic)

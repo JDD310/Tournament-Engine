@@ -15,6 +15,8 @@ from app.teams import MAX_TEAMS, too_many_teams_message
 
 NAME_MAX_LENGTH = 100
 GAME_MAX_LENGTH = 100
+# Well inside a Postgres INTEGER, and far beyond any real game's score.
+MAX_SCORE = 999_999
 
 
 class TournamentFormat(str, Enum):
@@ -75,6 +77,8 @@ class TournamentPublic(BaseModel):
     format: TournamentFormat
     created_at: datetime
     public_path: str
+    # Set when the final is reported: the tournament is Complete.
+    completed_at: datetime | None = None
 
 
 class TournamentCreated(TournamentPublic):
@@ -164,6 +168,9 @@ class MatchPublic(BaseModel):
     # the final.
     next_match_id: int | None
     next_slot: int | None
+    # The reported score; both None until the match is reported (and for byes).
+    team1_score: int | None = None
+    team2_score: int | None = None
 
 
 class RoundPublic(BaseModel):
@@ -176,3 +183,38 @@ class BracketPublic(BaseModel):
     generated: bool
     # Round 1 first; matches top to bottom. Empty until generated.
     rounds: list[RoundPublic]
+    # The final's winner, once the final is reported (the tournament is then
+    # Complete). None until then.
+    champion: BracketTeam | None = None
+
+
+def _score(value: object, label: str) -> int:
+    # bool is an int subclass in Python, and JSON true/false aren't scores.
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError(f"{label} must be a whole number.")
+    if value < 0:
+        raise ValueError(f"{label} can't be negative.")
+    if value > MAX_SCORE:
+        raise ValueError(f"{label} must be {MAX_SCORE:,} or less.")
+    return value
+
+
+class ScoreReport(BaseModel):
+    """Body for reporting (or correcting) a match's score.
+
+    The team with the higher score wins. Whether a tie is allowed depends on
+    the format, so it is checked by the endpoint, not here.
+    """
+
+    team1_score: int = Field(description="Score of team1", ge=0, le=MAX_SCORE)
+    team2_score: int = Field(description="Score of team2", ge=0, le=MAX_SCORE)
+
+    @field_validator("team1_score", mode="before")
+    @classmethod
+    def validate_team1_score(cls, value: object) -> int:
+        return _score(value, "Team 1 score")
+
+    @field_validator("team2_score", mode="before")
+    @classmethod
+    def validate_team2_score(cls, value: object) -> int:
+        return _score(value, "Team 2 score")

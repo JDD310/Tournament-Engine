@@ -42,6 +42,7 @@ def to_public(tournament: Tournament) -> TournamentPublic:
         format=tournament.format,
         created_at=tournament.created_at,
         public_path=public_path(tournament.id),
+        completed_at=tournament.completed_at,
     )
 
 
