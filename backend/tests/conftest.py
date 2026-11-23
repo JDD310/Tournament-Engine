@@ -6,8 +6,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app import migrate
 from app.config import normalize_database_url
-from app.db import Base, get_db
+from app.db import get_db
 from app.main import app
 
 # Tests run against in-memory SQLite by default so they need no setup.
@@ -25,9 +26,12 @@ def engine():
             connect_args={"check_same_thread": False},
             poolclass=StaticPool,
         )
-    Base.metadata.create_all(engine)
+    # Build the schema the same way production does: from the migrations.
+    with engine.begin() as connection:
+        migrate.upgrade(connection)
     yield engine
-    Base.metadata.drop_all(engine)
+    with engine.begin() as connection:
+        migrate.downgrade(connection, "base")
     engine.dispose()
 
 
