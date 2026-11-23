@@ -1,24 +1,15 @@
-from contextlib import asynccontextmanager
-
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.db import Base, engine
 from app.routers import tournaments
 
 FIELD_LABELS = {"name": "Tournament name", "game": "Game", "format": "Format"}
 
 
-@asynccontextmanager
-async def lifespan(_: FastAPI):
-    # No migrations yet; create tables on startup. Replace with Alembic once
-    # the schema starts changing (see PR follow-ups).
-    Base.metadata.create_all(bind=engine)
-    yield
-
-
-app = FastAPI(title="Tournament Engine", lifespan=lifespan)
+# The schema is managed by Alembic. Run `python -m app.migrate` (or
+# `alembic upgrade head`) before starting the app; it does not create tables.
+app = FastAPI(title="Tournament Engine")
 app.include_router(tournaments.router)
 
 
