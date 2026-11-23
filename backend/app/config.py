@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     database_url: str = "postgresql+psycopg://localhost/tournament_engine"
+    # Directory holding the built frontend (frontend/dist). When set, the app
+    # serves it alongside the API; the Docker image sets it. See app/spa.py.
+    frontend_dist: str | None = None
 
 
 def normalize_database_url(url: str) -> str:
