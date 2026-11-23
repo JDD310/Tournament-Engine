@@ -51,7 +51,7 @@ def client(engine):
             yield session
 
     app.dependency_overrides[get_db] = override_get_db
-    # Not used as a context manager, so the startup create_all against the
-    # real DATABASE_URL never runs during tests.
+    # Not used as a context manager, so no lifespan/startup hooks run. The
+    # schema comes from the migrations applied by the engine fixture.
     yield TestClient(app)
     app.dependency_overrides.clear()
