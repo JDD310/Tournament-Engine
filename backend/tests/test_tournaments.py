@@ -165,3 +165,26 @@ def test_edit_validates_fields(client):
 
     assert response.status_code == 422
     assert errors_by_field(response) == {"name": "Tournament name is required."}
+
+
+@pytest.mark.parametrize(
+    ("body", "message"),
+    [
+        ("{bad", "Request body must be valid JSON."),
+        ("[1]", "Request body must be a JSON object."),
+        ('"text"', "Request body must be a JSON object."),
+        ("", "Request body is required."),
+    ],
+)
+def test_malformed_body_has_clear_message(client, body, message):
+    response = client.post(
+        "/api/tournaments",
+        content=body,
+        headers={"Content-Type": "application/json"},
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": message,
+        "errors": [{"field": "", "message": message}],
+    }
