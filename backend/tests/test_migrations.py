@@ -64,6 +64,26 @@ def test_downgrade_from_matches_keeps_teams(engine):
         assert "matches" in inspect(connection).get_table_names()
 
 
+def test_downgrade_from_scores_keeps_matches(engine):
+    with engine.begin() as connection:
+        migrate.downgrade(connection, "0003")
+        inspector = inspect(connection)
+        match_columns = {c["name"] for c in inspector.get_columns("matches")}
+        assert {"team1_score", "team2_score"}.isdisjoint(match_columns)
+        assert "winner_id" in match_columns
+        tournament_columns = {c["name"] for c in inspector.get_columns("tournaments")}
+        assert "completed_at" not in tournament_columns
+        assert "bracket_generated" in tournament_columns
+        migrate.upgrade(connection)
+        inspector = inspect(connection)
+        assert {"team1_score", "team2_score"} <= {
+            c["name"] for c in inspector.get_columns("matches")
+        }
+        assert "completed_at" in {
+            c["name"] for c in inspector.get_columns("tournaments")
+        }
+
+
 def test_offline_sql_for_postgres(monkeypatch):
     """Render the Postgres DDL without needing a database."""
     monkeypatch.setenv("DATABASE_URL", "postgresql://user:pw@localhost/te")
@@ -90,6 +110,12 @@ def test_offline_sql_for_postgres(monkeypatch):
     assert "CREATE TABLE matches" in sql
     assert "FOREIGN KEY(next_match_id) REFERENCES matches (id)" in sql
     assert "FOREIGN KEY(winner_id) REFERENCES teams (id)" in sql
+    assert "ALTER TABLE matches ADD COLUMN team1_score INTEGER" in sql
+    assert "ALTER TABLE matches ADD COLUMN team2_score INTEGER" in sql
+    assert (
+        "ALTER TABLE tournaments ADD COLUMN completed_at TIMESTAMP WITH TIME ZONE"
+        in sql
+    )
 
 
 def test_app_startup_does_not_create_tables(monkeypatch):
