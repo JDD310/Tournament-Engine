@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.routers import bracket, matches, teams, tournaments
+from app.routers import bracket, matches, public, teams, tournaments
 
 FIELD_LABELS = {
     "name": "Tournament name",
@@ -21,6 +21,7 @@ app.include_router(tournaments.router)
 app.include_router(teams.router)
 app.include_router(bracket.router)
 app.include_router(matches.router)
+app.include_router(public.router)
 
 
 def _field_name(error: dict) -> str:

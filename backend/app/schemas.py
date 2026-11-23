@@ -24,6 +24,17 @@ class TournamentFormat(str, Enum):
     single_elimination = "single_elimination"
 
 
+class TournamentStatus(str, Enum):
+    """Where a tournament is. Derived from other columns, never stored."""
+
+    # No bracket yet: the organizer is still adding and seeding teams.
+    setting_up = "setting_up"
+    # The bracket is generated and the final hasn't been reported.
+    in_progress = "in_progress"
+    # The final has been reported.
+    complete = "complete"
+
+
 def _required_text(value: object, label: str, max_length: int) -> str:
     if value is None:
         raise ValueError(f"{label} is required.")
@@ -79,6 +90,7 @@ class TournamentPublic(BaseModel):
     public_path: str
     # Set when the final is reported: the tournament is Complete.
     completed_at: datetime | None = None
+    status: TournamentStatus
 
 
 class TournamentCreated(TournamentPublic):
@@ -186,6 +198,14 @@ class BracketPublic(BaseModel):
     # The final's winner, once the final is reported (the tournament is then
     # Complete). None until then.
     champion: BracketTeam | None = None
+
+
+class TournamentView(BaseModel):
+    """Everything the public tournament page shows, read in one go."""
+
+    tournament: TournamentPublic
+    teams: TeamList
+    bracket: BracketPublic
 
 
 def _score(value: object, label: str) -> int:
