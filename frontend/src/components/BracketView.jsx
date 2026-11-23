@@ -53,7 +53,18 @@ export default function BracketView({ bracket, renderMatchActions }) {
           Tournament complete. Champion: <strong>{bracket.champion.name}</strong>
         </p>
       )}
-      <div className="bracket" data-testid="bracket">
+      {bracket.rounds.length > 1 && (
+        <p className="bracket-hint muted">Scroll sideways to see every round.</p>
+      )}
+      {/* The rounds scroll sideways inside this box, not the whole page. It is
+          focusable so keyboard users can scroll it too. */}
+      <div
+        className="bracket"
+        data-testid="bracket"
+        role="region"
+        aria-label="Bracket rounds"
+        tabIndex={0}
+      >
         {bracket.rounds.map((round) => {
           const headingId = `bracket-round-${round.round}`
           return (
