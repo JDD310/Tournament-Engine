@@ -11,10 +11,19 @@ from app.routers.tournaments import (
     get_tournament_or_404,
     require_admin,
 )
-from app.schemas import BracketPublic, BracketTeam, MatchPublic, RoundPublic
+from app.schemas import (
+    BracketPublic,
+    BracketTeam,
+    MatchPublic,
+    RoundPublic,
+    TournamentFormat,
+)
 from app.teams import bracket_readiness_error
 
 ALREADY_GENERATED = "The bracket has already been generated."
+NOT_SINGLE_ELIMINATION = (
+    "Only single-elimination tournaments have a bracket to generate."
+)
 
 router = APIRouter(prefix="/api/tournaments/{tournament_id}/bracket", tags=["bracket"])
 
@@ -71,6 +80,11 @@ def generate_bracket(
     # Lock first, so no team change can land between reading the teams and
     # committing the bracket, and two generations can't both pass the check.
     tournament = require_admin(db, tournament_id, x_admin_token, lock=True)
+    # Generating would lock the teams for good (there is no reset), so refuse
+    # any other format rather than build it a single-elimination bracket.
+    # TE-7: give Swiss its own branch here (or its own endpoint) when it lands.
+    if tournament.format != TournamentFormat.single_elimination.value:
+        raise HTTPException(status.HTTP_409_CONFLICT, NOT_SINGLE_ELIMINATION)
     if tournament.bracket_generated:
         raise HTTPException(status.HTTP_409_CONFLICT, ALREADY_GENERATED)
     teams = load_teams(db, tournament_id)

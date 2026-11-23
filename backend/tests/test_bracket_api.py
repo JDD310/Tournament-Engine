@@ -5,7 +5,7 @@ from sqlalchemy import func, select
 
 from app.models import Match, Team, Tournament
 from app.routers import tournaments as tournaments_router
-from app.routers.bracket import ALREADY_GENERATED
+from app.routers.bracket import ALREADY_GENERATED, NOT_SINGLE_ELIMINATION
 from app.routers.teams import TEAMS_LOCKED
 from app.security import hash_admin_token
 from app.teams import MAX_TEAMS, bracket_readiness_error
@@ -270,6 +270,29 @@ def test_generating_a_second_time_is_rejected(client, tournament, admin, db_sess
     assert again.json()["detail"] == ALREADY_GENERATED
     assert match_count(db_session, tournament) == 3
     assert client.get(url(tournament)).json() == first
+
+
+def test_generation_is_rejected_for_other_formats(
+    client, tournament, admin, db_session
+):
+    # The API only accepts single_elimination today, so there is no way to
+    # create another format through it. Write a stand-in format onto the row
+    # directly to exercise the guard that a Swiss tournament (TE-7) will hit.
+    add_teams(client, tournament, admin, ["A", "B", "C", "D"])
+    row = db_session.get(Tournament, tournament["id"])
+    row.format = "swiss"
+    db_session.commit()
+
+    response = generate(client, tournament, admin)
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == NOT_SINGLE_ELIMINATION
+    db_session.expire_all()
+    assert db_session.get(Tournament, tournament["id"]).bracket_generated is False
+    assert match_count(db_session, tournament) == 0
+    # The teams stay editable, since nothing was locked.
+    added = client.post(url(tournament, "/teams"), json={"name": "E"}, headers=admin)
+    assert added.status_code == 201
 
 
 @pytest.mark.parametrize("headers", [{}, {"X-Admin-Token": "wrong"}])
