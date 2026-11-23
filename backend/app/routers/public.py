@@ -18,7 +18,14 @@ def use_snapshot(db: Session) -> None:
     REPEATABLE READ pins one snapshot for the transaction. It must be set
     before the first query. SQLite (tests, local use) serializes writes and
     doesn't accept this level, so it is left alone there.
+
+    Once the session has a connection, SQLAlchemy only warns and ignores the
+    option, so the reads would silently run at READ COMMITTED; this raises
+    instead. The level is reset when the connection goes back to the pool, so
+    it doesn't carry over to later requests (tests/test_public_snapshot.py).
     """
+    if db.in_transaction():
+        raise RuntimeError("use_snapshot() must run before the session's first query")
     if db.get_bind().dialect.name == "postgresql":
         db.connection(execution_options={"isolation_level": "REPEATABLE READ"})
 
